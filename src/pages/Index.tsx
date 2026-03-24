@@ -1,6 +1,7 @@
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Github, Twitter, Instagram, Linkedin, Mail, Globe, Coffee, Sun, Moon, Zap, Sparkles } from "lucide-react"
+import { Sun, Moon, Coffee, Zap, Sparkles, Play, Pause, SkipBack, SkipForward, Volume2, Music, ChevronDown, ChevronUp } from "lucide-react"
+import Icon from "@/components/ui/icon"
 
 type Theme = "day" | "night" | "coffee" | "mint" | "electric"
 
@@ -16,6 +17,8 @@ const themes: Record<Theme, {
   buttonBg: string
   buttonText: string
   buttonHover: string
+  progressBg: string
+  progressFill: string
 }> = {
   day: {
     name: "День",
@@ -23,12 +26,14 @@ const themes: Record<Theme, {
     bg: "bg-gray-50",
     cardBg: "bg-white",
     text: "text-gray-900",
-    textSecondary: "text-gray-600",
+    textSecondary: "text-gray-500",
     border: "border-gray-200",
     accent: "text-gray-900",
     buttonBg: "bg-gray-900",
     buttonText: "text-white",
     buttonHover: "hover:bg-gray-700",
+    progressBg: "bg-gray-200",
+    progressFill: "bg-gray-900",
   },
   night: {
     name: "Ночь",
@@ -42,6 +47,8 @@ const themes: Record<Theme, {
     buttonBg: "bg-gray-100",
     buttonText: "text-gray-900",
     buttonHover: "hover:bg-gray-300",
+    progressBg: "bg-gray-700",
+    progressFill: "bg-gray-100",
   },
   coffee: {
     name: "Кофе",
@@ -55,6 +62,8 @@ const themes: Record<Theme, {
     buttonBg: "bg-amber-800",
     buttonText: "text-amber-50",
     buttonHover: "hover:bg-amber-700",
+    progressBg: "bg-amber-200",
+    progressFill: "bg-amber-800",
   },
   mint: {
     name: "Мята",
@@ -68,6 +77,8 @@ const themes: Record<Theme, {
     buttonBg: "bg-emerald-800",
     buttonText: "text-emerald-50",
     buttonHover: "hover:bg-emerald-700",
+    progressBg: "bg-emerald-200",
+    progressFill: "bg-emerald-800",
   },
   electric: {
     name: "Электро",
@@ -81,26 +92,71 @@ const themes: Record<Theme, {
     buttonBg: "bg-cyan-500",
     buttonText: "text-slate-900",
     buttonHover: "hover:bg-cyan-400",
+    progressBg: "bg-slate-700",
+    progressFill: "bg-cyan-500",
   },
 }
 
-const socialLinks = [
-  { name: "GitHub", icon: Github, url: "https://github.com", username: "@yourhandle" },
-  { name: "Twitter", icon: Twitter, url: "https://twitter.com", username: "@yourhandle" },
-  { name: "Instagram", icon: Instagram, url: "https://instagram.com", username: "@yourhandle" },
-  { name: "LinkedIn", icon: Linkedin, url: "https://linkedin.com", username: "/in/yourprofile" },
-  { name: "Почта", icon: Mail, url: "mailto:hello@example.com", username: "hello@example.com" },
-  { name: "Сайт", icon: Globe, url: "https://example.com", username: "example.com" },
+interface Song {
+  id: number
+  title: string
+  duration: string
+  lyrics: string
+}
+
+const songs: Song[] = [
+  {
+    id: 1,
+    title: "Первая песня",
+    duration: "3:42",
+    lyrics: `Здесь будут слова первой песни
+Строка за строкой, куплет за куплетом
+Замените этот текст на настоящий
+И музыка оживёт`,
+  },
+  {
+    id: 2,
+    title: "Вторая песня",
+    duration: "4:10",
+    lyrics: `Слова второй песни живут здесь
+В ритме и в рифме, в тишине и в огне
+Каждое слово — это часть истории
+Которую я хочу рассказать тебе`,
+  },
+  {
+    id: 3,
+    title: "Третья песня",
+    duration: "3:55",
+    lyrics: `Третья песня — самая особенная
+Она про то, что важно и близко
+Строки складываются в мелодию
+И мелодия становится жизнью`,
+  },
+  {
+    id: 4,
+    title: "Четвёртая песня",
+    duration: "4:28",
+    lyrics: `Четыре аккорда, четыре слова
+Четыре момента из прошлого
+Всё это складывается в песню
+Которая звучит для тебя`,
+  },
+  {
+    id: 5,
+    title: "Пятая песня",
+    duration: "3:20",
+    lyrics: `И снова начало, снова мотив
+Снова я здесь с новой песней
+Пусть эти слова найдут тебя
+Где бы ты ни был сейчас`,
+  },
 ]
 
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-      delayChildren: 0.2,
-    },
+    transition: { staggerChildren: 0.08, delayChildren: 0.1 },
   },
 }
 
@@ -109,57 +165,62 @@ const itemVariants = {
   visible: {
     y: 0,
     opacity: 1,
-    transition: {
-      type: "spring",
-      stiffness: 100,
-      damping: 10,
-    },
-  },
-}
-
-const linkVariants = {
-  hidden: { scale: 0.8, opacity: 0 },
-  visible: {
-    scale: 1,
-    opacity: 1,
-    transition: {
-      type: "spring",
-      stiffness: 200,
-      damping: 15,
-    },
-  },
-  hover: {
-    scale: 1.05,
-    transition: {
-      type: "spring",
-      stiffness: 400,
-      damping: 10,
-    },
-  },
-  tap: {
-    scale: 0.95,
+    transition: { type: "spring", stiffness: 100, damping: 10 },
   },
 }
 
 const themeButtonVariants = {
-  hover: {
-    scale: 1.1,
-    rotate: 5,
-    transition: {
-      type: "spring",
-      stiffness: 400,
-      damping: 10,
-    },
-  },
-  tap: {
-    scale: 0.9,
-    rotate: -5,
-  },
+  hover: { scale: 1.1, rotate: 5, transition: { type: "spring", stiffness: 400, damping: 10 } },
+  tap: { scale: 0.9, rotate: -5 },
 }
 
-export default function SocialLinksLanding() {
-  const [currentTheme, setCurrentTheme] = useState<Theme>("day")
+export default function MusicPlayer() {
+  const [currentTheme, setCurrentTheme] = useState<Theme>("night")
   const theme = themes[currentTheme]
+
+  const [currentSong, setCurrentSong] = useState(0)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [progress, setProgress] = useState(0)
+  const [openLyrics, setOpenLyrics] = useState<number | null>(null)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  useEffect(() => {
+    if (isPlaying) {
+      intervalRef.current = setInterval(() => {
+        setProgress((p) => {
+          if (p >= 100) {
+            handleNext()
+            return 0
+          }
+          return p + 0.3
+        })
+      }, 100)
+    } else {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+    }
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
+  }, [isPlaying, currentSong])
+
+  const handleNext = () => {
+    setCurrentSong((s) => (s + 1) % songs.length)
+    setProgress(0)
+  }
+
+  const handlePrev = () => {
+    setCurrentSong((s) => (s - 1 + songs.length) % songs.length)
+    setProgress(0)
+  }
+
+  const handleSongClick = (idx: number) => {
+    setCurrentSong(idx)
+    setProgress(0)
+    setIsPlaying(true)
+  }
+
+  const toggleLyrics = (id: number, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setOpenLyrics((prev) => (prev === id ? null : id))
+  }
 
   return (
     <div className={`min-h-screen transition-all duration-500 ${theme.bg}`}>
@@ -168,9 +229,9 @@ export default function SocialLinksLanding() {
         className="fixed top-4 right-4 z-10"
         initial={{ opacity: 0, x: 50 }}
         animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.5 }}
+        transition={{ delay: 0.4 }}
       >
-        <div className={`flex gap-2 p-2 rounded-full ${theme.cardBg} ${theme.border} border-2`}>
+        <div className={`flex gap-1 p-2 rounded-full ${theme.cardBg} ${theme.border} border-2`}>
           {Object.entries(themes).map(([key, themeData]) => {
             const IconComponent = themeData.icon
             return (
@@ -180,14 +241,14 @@ export default function SocialLinksLanding() {
                 className={`p-2 rounded-full transition-all duration-200 ${
                   currentTheme === key
                     ? `${theme.buttonBg} ${theme.buttonText}`
-                    : `${theme.text} hover:${theme.buttonBg} hover:${theme.buttonText}`
+                    : `${theme.text}`
                 }`}
                 variants={themeButtonVariants}
                 whileHover="hover"
                 whileTap="tap"
                 title={themeData.name}
               >
-                <IconComponent size={16} />
+                <IconComponent size={14} />
               </motion.button>
             )
           })}
@@ -201,126 +262,176 @@ export default function SocialLinksLanding() {
         initial="hidden"
         animate="visible"
       >
-        {/* Profile Section */}
-        <motion.div className="text-center mb-12" variants={itemVariants}>
+        {/* Profile */}
+        <motion.div className="text-center mb-10" variants={itemVariants}>
           <motion.div
-            className={`w-24 h-24 mx-auto mb-6 rounded-full ${theme.cardBg} ${theme.border} border-4 flex items-center justify-center`}
-            whileHover={{
-              rotate: 360,
-              transition: { duration: 0.5 },
+            className={`w-24 h-24 mx-auto mb-5 rounded-full ${theme.cardBg} ${theme.border} border-4 flex items-center justify-center`}
+            whileHover={{ rotate: 360, transition: { duration: 0.6 } }}
+          >
+            <motion.div
+              animate={{ scale: isPlaying ? [1, 1.15, 1] : 1 }}
+              transition={{ duration: 0.8, repeat: isPlaying ? Infinity : 0, ease: "easeInOut" }}
+            >
+              <Icon name="Music" size={36} className={theme.accent} />
+            </motion.div>
+          </motion.div>
+
+          <motion.h1 className={`text-3xl font-bold mb-1 ${theme.text}`} variants={itemVariants}>
+            Мои песни
+          </motion.h1>
+          <motion.p className={`${theme.textSecondary} text-base`} variants={itemVariants}>
+            Слушай и читай тексты
+          </motion.p>
+        </motion.div>
+
+        {/* Player Card */}
+        <motion.div
+          className={`${theme.cardBg} ${theme.border} border-2 rounded-2xl p-6 mb-6`}
+          variants={itemVariants}
+        >
+          {/* Now Playing */}
+          <div className="text-center mb-5">
+            <motion.p
+              key={currentSong}
+              className={`text-xs uppercase tracking-widest ${theme.textSecondary} mb-1`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
+              Сейчас играет
+            </motion.p>
+            <motion.h2
+              key={`title-${currentSong}`}
+              className={`text-xl font-bold ${theme.text}`}
+              initial={{ y: 10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 200 }}
+            >
+              {songs[currentSong].title}
+            </motion.h2>
+          </div>
+
+          {/* Progress Bar */}
+          <div className={`w-full h-1.5 rounded-full ${theme.progressBg} mb-5 cursor-pointer`}
+            onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect()
+              const x = e.clientX - rect.left
+              setProgress((x / rect.width) * 100)
             }}
           >
             <motion.div
-              className={`w-16 h-16 rounded-full ${theme.buttonBg}`}
-              animate={{
-                scale: [1, 1.1, 1],
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
+              className={`h-full rounded-full ${theme.progressFill}`}
+              style={{ width: `${progress}%` }}
             />
-          </motion.div>
+          </div>
 
-          <motion.h1 className={`text-3xl font-bold mb-2 ${theme.text}`} variants={itemVariants}>
-            PixelLink
-          </motion.h1>
+          {/* Controls */}
+          <div className="flex items-center justify-center gap-6">
+            <motion.button
+              onClick={handlePrev}
+              className={`${theme.text} opacity-70 hover:opacity-100`}
+              whileHover={{ scale: 1.15 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <SkipBack size={22} />
+            </motion.button>
 
-          <motion.p className={`${theme.textSecondary} text-lg`} variants={itemVariants}>
-            Все мои ссылки в одном месте
-          </motion.p>
+            <motion.button
+              onClick={() => setIsPlaying(!isPlaying)}
+              className={`w-14 h-14 rounded-full ${theme.buttonBg} ${theme.buttonText} flex items-center justify-center shadow-lg`}
+              whileHover={{ scale: 1.08 }}
+              whileTap={{ scale: 0.93 }}
+            >
+              {isPlaying ? <Pause size={24} /> : <Play size={24} className="ml-0.5" />}
+            </motion.button>
+
+            <motion.button
+              onClick={handleNext}
+              className={`${theme.text} opacity-70 hover:opacity-100`}
+              whileHover={{ scale: 1.15 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <SkipForward size={22} />
+            </motion.button>
+          </div>
         </motion.div>
 
-        {/* Social Links */}
-        <motion.div className="space-y-4" variants={containerVariants}>
-          <AnimatePresence>
-            {socialLinks.map((link) => {
-              const IconComponent = link.icon
-              return (
-                <motion.a
-                  key={link.name}
-                  href={link.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`block w-full p-4 rounded-lg ${theme.cardBg} ${theme.border} border-2 transition-all duration-200 group`}
-                  variants={linkVariants}
-                  whileHover="hover"
-                  whileTap="tap"
-                  layout
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <motion.div
-                        className={`p-2 rounded-full ${theme.buttonBg} ${theme.buttonText}`}
-                        whileHover={{ rotate: 15 }}
-                        transition={{ type: "spring", stiffness: 300 }}
-                      >
-                        <IconComponent size={20} />
-                      </motion.div>
-                      <div>
-                        <h3 className={`font-semibold ${theme.text}`}>{link.name}</h3>
-                        <p className={`text-sm ${theme.textSecondary}`}>{link.username}</p>
-                      </div>
-                    </div>
-                    <motion.div
-                      className={`${theme.accent}`}
-                      animate={{ x: [0, 5, 0] }}
-                      transition={{
-                        duration: 1.5,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                      }}
-                    >
-                      <span className="text-xl">&rarr;</span>
-                    </motion.div>
+        {/* Songs List */}
+        <motion.div className="space-y-3" variants={containerVariants}>
+          {songs.map((song, idx) => (
+            <motion.div
+              key={song.id}
+              className={`${theme.cardBg} ${theme.border} border-2 rounded-xl overflow-hidden`}
+              variants={itemVariants}
+              layout
+            >
+              {/* Song Row */}
+              <motion.button
+                className="w-full p-4 flex items-center justify-between text-left"
+                onClick={() => handleSongClick(idx)}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+              >
+                <div className="flex items-center gap-3">
+                  <motion.div
+                    className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      currentSong === idx ? `${theme.buttonBg} ${theme.buttonText}` : `${theme.progressBg}`
+                    }`}
+                    animate={currentSong === idx && isPlaying ? { scale: [1, 1.1, 1] } : { scale: 1 }}
+                    transition={{ duration: 0.8, repeat: currentSong === idx && isPlaying ? Infinity : 0 }}
+                  >
+                    {currentSong === idx && isPlaying ? (
+                      <Volume2 size={14} />
+                    ) : (
+                      <Play size={13} className="ml-0.5" />
+                    )}
+                  </motion.div>
+                  <div>
+                    <p className={`font-semibold text-sm ${theme.text}`}>{song.title}</p>
+                    <p className={`text-xs ${theme.textSecondary}`}>{song.duration}</p>
                   </div>
-                </motion.a>
-              )
-            })}
-          </AnimatePresence>
+                </div>
+
+                <motion.button
+                  onClick={(e) => toggleLyrics(song.id, e)}
+                  className={`text-xs flex items-center gap-1 px-3 py-1 rounded-full border ${theme.border} ${theme.textSecondary}`}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  Текст
+                  {openLyrics === song.id ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                </motion.button>
+              </motion.button>
+
+              {/* Lyrics */}
+              <AnimatePresence>
+                {openLyrics === song.id && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    className="overflow-hidden"
+                  >
+                    <div className={`px-4 pb-4 pt-0 border-t ${theme.border}`}>
+                      <p className={`text-sm leading-7 whitespace-pre-line ${theme.textSecondary} pt-3`}>
+                        {song.lyrics}
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          ))}
         </motion.div>
 
         {/* Footer */}
-        <motion.div className="text-center mt-12" variants={itemVariants}>
-          <motion.p
-            className={`text-sm ${theme.textSecondary}`}
-            animate={{ opacity: [0.5, 1, 0.5] }}
-            transition={{
-              duration: 3,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-          >
-            Сделано с заботой в PixelLink
-          </motion.p>
-        </motion.div>
+        <motion.p
+          className={`text-center text-xs ${theme.textSecondary} mt-10 opacity-50`}
+          variants={itemVariants}
+        >
+          © 2026 · Все права защищены
+        </motion.p>
       </motion.div>
-
-      {/* Animated Background Elements */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        {[...Array(6)].map((_, i) => (
-          <motion.div
-            key={i}
-            className={`absolute w-2 h-2 ${theme.buttonBg} rounded-full opacity-20`}
-            animate={{
-              x: [0, 100, 0],
-              y: [0, -100, 0],
-              scale: [1, 1.5, 1],
-            }}
-            transition={{
-              duration: 8 + i * 2,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: i * 0.5,
-            }}
-            style={{
-              left: `${10 + i * 15}%`,
-              top: `${20 + i * 10}%`,
-            }}
-          />
-        ))}
-      </div>
     </div>
   )
 }
