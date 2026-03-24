@@ -1,0 +1,19 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Wrong password",
+      "method": "POST",
+      "path": "/",
+      "body": {"password": "wrongpass", "title": "Test", "filename": "test.mp3"},
+      "expectedStatus": 401,
+      "expectedBody": {"error": "Неверный пароль"},
+      "bodyMatcher": "partial"
+    }
+  ]
+}

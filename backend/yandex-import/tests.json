@@ -1,0 +1,24 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Wrong password",
+      "method": "POST",
+      "path": "/",
+      "body": {"password": "wrong", "url": "https://music.yandex.ru/album/123/track/456"},
+      "expectedStatus": 401
+    },
+    {
+      "name": "Wrong password blocks request",
+      "method": "POST",
+      "path": "/",
+      "body": {"password": "wrong", "url": "https://example.com/not-yandex"},
+      "expectedStatus": 401
+    }
+  ]
+}
