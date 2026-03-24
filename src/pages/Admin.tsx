@@ -1,0 +1,261 @@
+import { useState, useRef } from "react"
+import { motion } from "framer-motion"
+import { Upload, Trash2, Lock, Music, CheckCircle, AlertCircle, Loader } from "lucide-react"
+
+const UPLOAD_URL = "https://functions.poehali.dev/e1758a26-5fa9-4491-b37d-9b2885b079d7"
+const LIST_URL = "https://functions.poehali.dev/092ca65c-635c-495d-a7af-ad2980594837"
+
+interface Song {
+  id: number
+  title: string
+  artist: string
+  duration: string
+  lyrics: string
+  url: string
+}
+
+export default function Admin() {
+  const [password, setPassword] = useState("")
+  const [authed, setAuthed] = useState(false)
+  const [authError, setAuthError] = useState("")
+  const [songs, setSongs] = useState<Song[]>([])
+  const [loading, setLoading] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [uploadStatus, setUploadStatus] = useState<"idle" | "ok" | "error">("idle")
+  const [uploadMsg, setUploadMsg] = useState("")
+
+  const [title, setTitle] = useState("")
+  const [artist, setArtist] = useState("")
+  const [duration, setDuration] = useState("")
+  const [lyrics, setLyrics] = useState("")
+  const [file, setFile] = useState<File | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  const handleAuth = async () => {
+    setLoading(true)
+    setAuthError("")
+    const res = await fetch(LIST_URL)
+    if (res.ok) {
+      const data = await res.json()
+      setSongs(data.songs || [])
+      setAuthed(true)
+    } else {
+      setAuthError("Не удалось подключиться")
+    }
+    setLoading(false)
+  }
+
+  const refreshSongs = async () => {
+    const res = await fetch(LIST_URL)
+    const data = await res.json()
+    setSongs(data.songs || [])
+  }
+
+  const fileToBase64 = (f: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const result = reader.result as string
+        resolve(result.split(",")[1])
+      }
+      reader.onerror = reject
+      reader.readAsDataURL(f)
+    })
+
+  const handleUpload = async () => {
+    if (!file || !title) {
+      setUploadMsg("Укажите название и выберите MP3 файл")
+      setUploadStatus("error")
+      return
+    }
+    setUploading(true)
+    setUploadStatus("idle")
+    try {
+      const b64 = await fileToBase64(file)
+      const res = await fetch(UPLOAD_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password, title, artist, duration, lyrics, file: b64 }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setUploadStatus("ok")
+        setUploadMsg(`Песня загружена!`)
+        setTitle(""); setArtist(""); setDuration(""); setLyrics(""); setFile(null)
+        if (fileRef.current) fileRef.current.value = ""
+        await refreshSongs()
+      } else {
+        setUploadStatus("error")
+        setUploadMsg(data.error || "Ошибка загрузки")
+      }
+    } catch {
+      setUploadStatus("error")
+      setUploadMsg("Ошибка соединения")
+    }
+    setUploading(false)
+  }
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("Удалить песню?")) return
+    await fetch(UPLOAD_URL, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password, id }),
+    })
+    await refreshSongs()
+  }
+
+  if (!authed) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gray-800 border-2 border-gray-700 rounded-2xl p-8 w-full max-w-sm"
+        >
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Lock size={28} className="text-cyan-400" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-100">Администратор</h1>
+            <p className="text-gray-400 text-sm mt-1">Управление песнями</p>
+          </div>
+
+          <div className="space-y-3">
+            <input
+              type="password"
+              placeholder="Введите пароль"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleAuth()}
+              className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-cyan-500"
+            />
+            {authError && <p className="text-red-400 text-sm">{authError}</p>}
+            <motion.button
+              onClick={handleAuth}
+              disabled={loading || !password}
+              className="w-full bg-cyan-500 text-slate-900 font-bold rounded-xl py-3 disabled:opacity-50"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              {loading ? "Вход..." : "Войти"}
+            </motion.button>
+          </div>
+        </motion.div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-900 text-gray-100 p-4">
+      <div className="max-w-2xl mx-auto">
+        <div className="flex items-center gap-3 mb-8 pt-4">
+          <Music size={28} className="text-cyan-400" />
+          <h1 className="text-2xl font-bold">Управление песнями</h1>
+        </div>
+
+        {/* Upload Form */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gray-800 border-2 border-gray-700 rounded-2xl p-6 mb-6"
+        >
+          <h2 className="text-lg font-semibold mb-4 text-cyan-300">Загрузить новую песню</h2>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <input
+                placeholder="Название песни *"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="bg-gray-700 border border-gray-600 rounded-xl px-4 py-2.5 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-cyan-500 col-span-2"
+              />
+              <input
+                placeholder="Исполнитель"
+                value={artist}
+                onChange={(e) => setArtist(e.target.value)}
+                className="bg-gray-700 border border-gray-600 rounded-xl px-4 py-2.5 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-cyan-500"
+              />
+              <input
+                placeholder="Длительность (3:42)"
+                value={duration}
+                onChange={(e) => setDuration(e.target.value)}
+                className="bg-gray-700 border border-gray-600 rounded-xl px-4 py-2.5 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-cyan-500"
+              />
+            </div>
+            <textarea
+              placeholder="Текст песни (необязательно)"
+              value={lyrics}
+              onChange={(e) => setLyrics(e.target.value)}
+              rows={4}
+              className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-2.5 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-cyan-500 resize-none"
+            />
+            <div
+              onClick={() => fileRef.current?.click()}
+              className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors ${
+                file ? "border-cyan-500 bg-cyan-500/10" : "border-gray-600 hover:border-gray-500"
+              }`}
+            >
+              <Upload size={24} className="mx-auto mb-2 text-gray-400" />
+              <p className="text-sm text-gray-400">
+                {file ? file.name : "Нажмите чтобы выбрать MP3 файл"}
+              </p>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="audio/mpeg,audio/mp3,.mp3"
+                className="hidden"
+                onChange={(e) => setFile(e.target.files?.[0] || null)}
+              />
+            </div>
+
+            {uploadStatus !== "idle" && (
+              <div className={`flex items-center gap-2 text-sm ${uploadStatus === "ok" ? "text-green-400" : "text-red-400"}`}>
+                {uploadStatus === "ok" ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
+                {uploadMsg}
+              </div>
+            )}
+
+            <motion.button
+              onClick={handleUpload}
+              disabled={uploading}
+              className="w-full bg-cyan-500 text-slate-900 font-bold rounded-xl py-3 disabled:opacity-50 flex items-center justify-center gap-2"
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+            >
+              {uploading ? <><Loader size={18} className="animate-spin" /> Загружаю...</> : <><Upload size={18} /> Загрузить песню</>}
+            </motion.button>
+          </div>
+        </motion.div>
+
+        {/* Songs List */}
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold text-cyan-300">Загруженные песни ({songs.length})</h2>
+          {songs.length === 0 && (
+            <p className="text-gray-500 text-sm text-center py-8">Пока нет загруженных песен</p>
+          )}
+          {songs.map((song) => (
+            <motion.div
+              key={song.id}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="bg-gray-800 border border-gray-700 rounded-xl p-4 flex items-center justify-between"
+            >
+              <div>
+                <p className="font-semibold">{song.title}</p>
+                <p className="text-sm text-gray-400">{song.artist} {song.duration && `· ${song.duration}`}</p>
+              </div>
+              <motion.button
+                onClick={() => handleDelete(song.id)}
+                className="text-red-400 hover:text-red-300 p-2"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+              >
+                <Trash2 size={18} />
+              </motion.button>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}

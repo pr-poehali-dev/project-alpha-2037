@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS t_p30830350_project_alpha_2037.songs (
+  id SERIAL PRIMARY KEY,
+  title TEXT NOT NULL,
+  artist TEXT NOT NULL DEFAULT '',
+  duration TEXT NOT NULL DEFAULT '0:00',
+  lyrics TEXT NOT NULL DEFAULT '',
+  file_key TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
